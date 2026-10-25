@@ -1,0 +1,750 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Synapse: Cognitive Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* slate-900 */
+            color: #f8fafc; /* slate-50 */
+            overscroll-behavior: none;
+        }
+        
+        .game-view {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .game-view.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* Spatial Memory Grid Styles */
+        .memory-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            width: 100%;
+            max-width: 300px;
+            aspect-ratio: 1;
+            margin: 0 auto;
+        }
+        
+        .memory-tile {
+            background-color: #334155;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+        
+        .memory-tile.active {
+            background-color: #3b82f6; /* blue-500 */
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        /* Prevent tap highlighting on mobile */
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- DASHBOARD VIEW -->
+    <div id="dashboard" class="flex-1 flex flex-col p-6 max-w-5xl mx-auto w-full">
+        <header class="mb-10 mt-6 flex justify-between items-center text-left">
+            <div>
+                <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 mb-2">Synapse</h1>
+                <p class="text-slate-400 text-lg">Cognitive Performance Laboratory</p>
+            </div>
+            <button onclick="toggleFullScreen()" class="bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-300 p-3 rounded-xl transition-colors shadow-lg" title="Toggle Fullscreen">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+            </button>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-10">
+            <!-- Game Card 1: Reaction Time -->
+            <div class="bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-700 hover:border-blue-500 transition-colors cursor-pointer flex flex-col" onclick="openGame('reaction')">
+                <div class="flex items-center mb-4">
+                    <div class="bg-blue-900/50 p-3 rounded-lg mr-4">
+                        <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <h2 class="text-xl font-bold">Reaction Speed</h2>
+                </div>
+                <p class="text-slate-400 mb-6 flex-1">Measure the raw millisecond delay between a visual stimulus and your motor response.</p>
+                <button class="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-3 px-4 rounded-xl transition-colors">Start Test</button>
+            </div>
+
+            <!-- Game Card 2: Stroop Effect -->
+            <div class="bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-700 hover:border-purple-500 transition-colors cursor-pointer flex flex-col" onclick="openGame('stroop')">
+                <div class="flex items-center mb-4">
+                    <div class="bg-purple-900/50 p-3 rounded-lg mr-4">
+                        <svg class="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                    </div>
+                    <h2 class="text-xl font-bold">Stroop Interference</h2>
+                </div>
+                <p class="text-slate-400 mb-6 flex-1">Test your cognitive control by identifying the ink color of incongruent words.</p>
+                <button class="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-3 px-4 rounded-xl transition-colors">Start Test</button>
+            </div>
+
+            <!-- Game Card 3: Internal Clock -->
+            <div class="bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-700 hover:border-orange-500 transition-colors cursor-pointer flex flex-col" onclick="openGame('clock')">
+                <div class="flex items-center mb-4">
+                    <div class="bg-orange-900/50 p-3 rounded-lg mr-4">
+                        <svg class="w-8 h-8 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h2 class="text-xl font-bold">Internal Clock</h2>
+                </div>
+                <p class="text-slate-400 mb-6 flex-1">Estimate exactly 5 seconds using only your internal perception of time.</p>
+                <button class="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-3 px-4 rounded-xl transition-colors">Start Test</button>
+            </div>
+
+            <!-- Game Card 4: Spatial Memory -->
+            <div class="bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-700 hover:border-emerald-500 transition-colors cursor-pointer flex flex-col" onclick="openGame('spatial')">
+                <div class="flex items-center mb-4">
+                    <div class="bg-emerald-900/50 p-3 rounded-lg mr-4">
+                        <svg class="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                    </div>
+                    <h2 class="text-xl font-bold">Spatial Memory</h2>
+                </div>
+                <p class="text-slate-400 mb-6 flex-1">Replicate increasingly complex sequences to test your working memory buffer.</p>
+                <button class="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-3 px-4 rounded-xl transition-colors">Start Test</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN GAME CONTAINER (Full Screen) -->
+    <div id="game-container" class="hidden flex-col h-screen w-full bg-slate-900 absolute top-0 left-0 z-50 overflow-y-auto pb-10">
+        
+        <!-- Navbar for Games -->
+        <div class="p-4 flex items-center bg-slate-800/50 backdrop-blur border-b border-slate-800 sticky top-0 z-10">
+            <button onclick="closeGame()" class="flex items-center text-slate-300 hover:text-white bg-slate-700 px-4 py-2 rounded-lg transition">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                Dashboard
+            </button>
+            <h2 id="active-game-title" class="ml-4 text-xl font-bold">Game Title</h2>
+        </div>
+
+        <!-- GAME 1: REACTION TIME -->
+        <div id="game-reaction" class="game-view flex-col items-center p-6 max-w-3xl mx-auto w-full">
+            <div id="reaction-area" class="w-full h-64 bg-blue-600 rounded-2xl flex flex-col items-center justify-center text-center p-6 cursor-pointer select-none transition-colors duration-100 shadow-lg" onclick="handleReactionClick()">
+                <div id="reaction-icon" class="mb-4">
+                    <svg class="w-12 h-12 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
+                </div>
+                <h3 id="reaction-text" class="text-3xl font-bold text-white">Click to Start</h3>
+                <p id="reaction-subtext" class="text-white/70 mt-2">Wait for Green</p>
+            </div>
+            
+            <div class="w-full bg-slate-800 rounded-2xl p-6 mt-6 border border-slate-700 shadow-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Performance History</h3>
+                    <button onclick="resetReaction()" class="text-sm text-slate-400 hover:text-white">Clear Data</button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="reactionChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- GAME 2: STROOP EFFECT -->
+        <div id="game-stroop" class="game-view flex-col items-center p-6 max-w-3xl mx-auto w-full">
+            <div class="w-full bg-slate-800 rounded-2xl flex flex-col items-center justify-center text-center p-10 mb-6 border border-slate-700 shadow-lg min-h-[250px]">
+                <p class="text-slate-400 mb-2">Click the button matching the <strong class="text-white">INK COLOR</strong>, not the word.</p>
+                <div id="stroop-word" class="text-6xl font-extrabold uppercase tracking-widest my-8">READY</div>
+                <p id="stroop-feedback" class="text-lg font-semibold h-6 text-slate-400"></p>
+            </div>
+            
+            <div id="stroop-controls" class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full mb-6 pointer-events-none opacity-50">
+                <button onclick="handleStroopGuess('red')" class="bg-red-500 hover:bg-red-400 text-white font-bold py-4 rounded-xl shadow-lg transition-colors text-xl">RED</button>
+                <button onclick="handleStroopGuess('blue')" class="bg-blue-500 hover:bg-blue-400 text-white font-bold py-4 rounded-xl shadow-lg transition-colors text-xl">BLUE</button>
+                <button onclick="handleStroopGuess('green')" class="bg-green-500 hover:bg-green-400 text-white font-bold py-4 rounded-xl shadow-lg transition-colors text-xl">GREEN</button>
+                <button onclick="handleStroopGuess('yellow')" class="bg-yellow-500 hover:bg-yellow-400 text-white font-bold py-4 rounded-xl shadow-lg transition-colors text-xl">YELLOW</button>
+            </div>
+            <button id="stroop-start-btn" onclick="startStroopTest()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-4 rounded-xl mb-6 transition-colors shadow-lg">Start Test</button>
+
+            <div class="w-full bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-lg">
+                 <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Reaction Times (Correct Answers)</h3>
+                </div>
+                <div class="chart-container">
+                    <canvas id="stroopChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- GAME 3: INTERNAL CLOCK -->
+        <div id="game-clock" class="game-view flex-col items-center p-6 max-w-3xl mx-auto w-full">
+            <div class="w-full bg-slate-800 rounded-2xl flex flex-col items-center justify-center text-center p-10 mb-6 border border-slate-700 shadow-lg">
+                <h3 class="text-2xl font-bold mb-2">Target: 5.000 Seconds</h3>
+                <p class="text-slate-400 mb-8 max-w-md">Start the timer, count internally to exactly 5 seconds, and stop it. No visual aids will be shown.</p>
+                
+                <h1 id="clock-display" class="text-6xl font-mono font-bold text-orange-400 mb-8 hidden">0.000s</h1>
+                <p id="clock-feedback" class="text-xl font-semibold h-8 mb-4"></p>
+
+                <button id="clock-btn" onclick="handleClockAction()" class="w-64 bg-orange-600 hover:bg-orange-500 text-white font-bold py-5 rounded-full shadow-[0_0_20px_rgba(234,88,12,0.4)] transition-all text-xl active:scale-95">START TIMER</button>
+            </div>
+
+            <div class="w-full bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Estimations vs Target</h3>
+                </div>
+                <div class="chart-container">
+                    <canvas id="clockChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- GAME 4: SPATIAL MEMORY -->
+        <div id="game-spatial" class="game-view flex-col items-center p-6 max-w-3xl mx-auto w-full">
+            <div class="w-full bg-slate-800 rounded-2xl flex flex-col items-center p-6 border border-slate-700 shadow-lg mb-6">
+                <div class="flex justify-between w-full mb-6">
+                    <div class="text-slate-400">Level: <span id="spatial-level" class="text-white font-bold">1</span></div>
+                    <div class="text-slate-400" id="spatial-status">Waiting to start</div>
+                </div>
+
+                <div class="memory-grid mb-6 pointer-events-none" id="spatial-grid">
+                    <div class="memory-tile" data-index="0" onclick="handleSpatialClick(0)"></div>
+                    <div class="memory-tile" data-index="1" onclick="handleSpatialClick(1)"></div>
+                    <div class="memory-tile" data-index="2" onclick="handleSpatialClick(2)"></div>
+                    <div class="memory-tile" data-index="3" onclick="handleSpatialClick(3)"></div>
+                    <div class="memory-tile" data-index="4" onclick="handleSpatialClick(4)"></div>
+                    <div class="memory-tile" data-index="5" onclick="handleSpatialClick(5)"></div>
+                    <div class="memory-tile" data-index="6" onclick="handleSpatialClick(6)"></div>
+                    <div class="memory-tile" data-index="7" onclick="handleSpatialClick(7)"></div>
+                    <div class="memory-tile" data-index="8" onclick="handleSpatialClick(8)"></div>
+                </div>
+
+                <button id="spatial-btn" onclick="startSpatialGame()" class="w-full max-w-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-colors shadow-lg">Start Sequence</button>
+            </div>
+
+            <div class="w-full bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Max Sequence Length per Attempt</h3>
+                </div>
+                <div class="chart-container">
+                    <canvas id="spatialChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // --- Global Chart configuration defaults ---
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.font.family = 'Inter';
+    Chart.defaults.scale.grid.color = '#334155';
+
+    // --- Fullscreen Logic ---
+    function toggleFullScreen() {
+        if (!document.fullscreenElement &&    // alternative standard method
+            !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement ) {  // current working methods
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            } else if (document.documentElement.msRequestFullscreen) {
+                document.documentElement.msRequestFullscreen();
+            } else if (document.documentElement.mozRequestFullScreen) {
+                document.documentElement.mozRequestFullScreen();
+            } else if (document.documentElement.webkitRequestFullscreen) {
+                document.documentElement.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+            }
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
+        }
+    }
+
+    // --- Navigation ---
+    const dashboard = document.getElementById('dashboard');
+    const gameContainer = document.getElementById('game-container');
+    const gameViews = document.querySelectorAll('.game-view');
+    const titleEl = document.getElementById('active-game-title');
+
+    const gameTitles = {
+        'reaction': 'Reaction Speed',
+        'stroop': 'Stroop Interference',
+        'clock': 'Internal Clock',
+        'spatial': 'Spatial Memory'
+    };
+
+    function openGame(gameId) {
+        dashboard.classList.add('hidden');
+        gameContainer.classList.remove('hidden');
+        gameContainer.classList.add('flex');
+        
+        gameViews.forEach(view => view.classList.remove('active'));
+        document.getElementById(`game-${gameId}`).classList.add('active');
+        titleEl.textContent = gameTitles[gameId];
+
+        // Ensure charts resize properly when their container becomes visible
+        setTimeout(() => {
+            if(gameId === 'reaction') reactionChart.resize();
+            if(gameId === 'stroop') stroopChart.resize();
+            if(gameId === 'clock') clockChart.resize();
+            if(gameId === 'spatial') spatialChart.resize();
+        }, 50);
+    }
+
+    function closeGame() {
+        gameContainer.classList.add('hidden');
+        gameContainer.classList.remove('flex');
+        dashboard.classList.remove('hidden');
+    }
+
+    // ==========================================
+    // GAME 1: REACTION TIME LOGIC
+    // ==========================================
+    let reactionState = 'idle'; // idle, waiting, ready, done
+    let reactionTimeout;
+    let reactionStartTime;
+    let reactionHistory = [];
+    let reactionLabels = [];
+    
+    const rxArea = document.getElementById('reaction-area');
+    const rxText = document.getElementById('reaction-text');
+    const rxSubtext = document.getElementById('reaction-subtext');
+    const rxIcon = document.getElementById('reaction-icon');
+
+    const ctxReaction = document.getElementById('reactionChart').getContext('2d');
+    const reactionChart = new Chart(ctxReaction, {
+        type: 'line',
+        data: {
+            labels: reactionLabels,
+            datasets: [{
+                label: 'Reaction Time (ms)',
+                data: reactionHistory,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                borderWidth: 2,
+                pointBackgroundColor: '#60a5fa',
+                pointRadius: 4,
+                fill: true,
+                tension: 0.2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, suggestedMax: 600 }
+            }
+        }
+    });
+
+    function handleReactionClick() {
+        if (reactionState === 'idle' || reactionState === 'done') {
+            // Start waiting
+            reactionState = 'waiting';
+            rxArea.className = 'w-full h-64 bg-red-600 rounded-2xl flex flex-col items-center justify-center text-center p-6 cursor-pointer select-none transition-colors duration-100 shadow-lg';
+            rxText.textContent = 'Wait...';
+            rxSubtext.textContent = 'Click when green';
+            rxIcon.innerHTML = '<svg class="w-12 h-12 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+            
+            const delay = Math.random() * 3000 + 2000; // 2 to 5 seconds
+            reactionTimeout = setTimeout(() => {
+                reactionState = 'ready';
+                rxArea.className = 'w-full h-64 bg-green-500 rounded-2xl flex flex-col items-center justify-center text-center p-6 cursor-pointer select-none shadow-[0_0_30px_rgba(34,197,94,0.5)]';
+                rxText.textContent = 'CLICK NOW!';
+                rxSubtext.textContent = '';
+                rxIcon.innerHTML = '<svg class="w-12 h-12 text-white/80 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>';
+                reactionStartTime = performance.now();
+            }, delay);
+        } 
+        else if (reactionState === 'waiting') {
+            // False start
+            clearTimeout(reactionTimeout);
+            reactionState = 'done';
+            rxArea.className = 'w-full h-64 bg-slate-700 rounded-2xl flex flex-col items-center justify-center text-center p-6 cursor-pointer select-none transition-colors duration-100 shadow-lg';
+            rxText.textContent = 'Too Early!';
+            rxSubtext.textContent = 'Click to try again';
+            rxIcon.innerHTML = '<svg class="w-12 h-12 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
+        }
+        else if (reactionState === 'ready') {
+            // Correct click
+            const endTime = performance.now();
+            const timeDiff = Math.round(endTime - reactionStartTime);
+            reactionState = 'done';
+            
+            rxArea.className = 'w-full h-64 bg-blue-600 rounded-2xl flex flex-col items-center justify-center text-center p-6 cursor-pointer select-none transition-colors duration-100 shadow-lg';
+            rxText.textContent = `${timeDiff} ms`;
+            
+            let message = "Keep Practicing";
+            if(timeDiff < 150) message = "Apex Cognition (or Anticipation!)";
+            else if(timeDiff < 250) message = "Lightning Fast";
+            else if(timeDiff < 350) message = "Average";
+
+            rxSubtext.textContent = `${message} — Click to try again`;
+            rxIcon.innerHTML = '<svg class="w-12 h-12 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>';
+            
+            reactionHistory.push(timeDiff);
+            reactionLabels.push(`T${reactionHistory.length}`);
+            reactionChart.update();
+        }
+    }
+
+    function resetReaction() {
+        reactionHistory.length = 0;
+        reactionLabels.length = 0;
+        reactionChart.update();
+        reactionState = 'idle';
+        rxArea.className = 'w-full h-64 bg-blue-600 rounded-2xl flex flex-col items-center justify-center text-center p-6 cursor-pointer select-none transition-colors duration-100 shadow-lg';
+        rxText.textContent = 'Click to Start';
+        rxSubtext.textContent = 'Wait for Green';
+        rxIcon.innerHTML = '<svg class="w-12 h-12 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>';
+    }
+
+    // ==========================================
+    // GAME 2: STROOP EFFECT LOGIC
+    // ==========================================
+    const colors = ['red', 'blue', 'green', 'yellow'];
+    let stroopActive = false;
+    let currentInkColor = '';
+    let stroopStartTime = 0;
+    
+    let stroopHistory = [];
+    let stroopLabels = [];
+
+    const stroopWordEl = document.getElementById('stroop-word');
+    const stroopFeedback = document.getElementById('stroop-feedback');
+    const stroopControls = document.getElementById('stroop-controls');
+    const stroopStartBtn = document.getElementById('stroop-start-btn');
+
+    const ctxStroop = document.getElementById('stroopChart').getContext('2d');
+    const stroopChart = new Chart(ctxStroop, {
+        type: 'line',
+        data: {
+            labels: stroopLabels,
+            datasets: [{
+                label: 'Response Time (ms)',
+                data: stroopHistory,
+                borderColor: '#a855f7',
+                backgroundColor: 'rgba(168, 85, 247, 0.2)',
+                borderWidth: 2,
+                pointBackgroundColor: '#c084fc',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    function nextStroopTurn() {
+        // Pick random text and random ink color
+        const text = colors[Math.floor(Math.random() * colors.length)];
+        currentInkColor = colors[Math.floor(Math.random() * colors.length)];
+        
+        stroopWordEl.textContent = text;
+        stroopWordEl.style.color = getHexForColor(currentInkColor);
+        stroopStartTime = performance.now();
+    }
+
+    function getHexForColor(color) {
+        if(color === 'red') return '#ef4444';
+        if(color === 'blue') return '#3b82f6';
+        if(color === 'green') return '#22c55e';
+        if(color === 'yellow') return '#eab308';
+        return '#fff';
+    }
+
+    function startStroopTest() {
+        stroopActive = true;
+        stroopStartBtn.classList.add('hidden');
+        stroopControls.classList.remove('pointer-events-none', 'opacity-50');
+        stroopFeedback.textContent = '';
+        nextStroopTurn();
+    }
+
+    function handleStroopGuess(guessedColor) {
+        if (!stroopActive) return;
+        
+        const reactionTime = Math.round(performance.now() - stroopStartTime);
+        
+        if (guessedColor === currentInkColor) {
+            // Correct
+            stroopHistory.push(reactionTime);
+            stroopLabels.push(`T${stroopHistory.length}`);
+            stroopChart.update();
+            stroopFeedback.textContent = `${reactionTime}ms`;
+            stroopFeedback.className = 'text-lg font-semibold h-6 text-green-400';
+            nextStroopTurn();
+        } else {
+            // Wrong
+            stroopFeedback.textContent = 'Wrong! Pick the INK color.';
+            stroopFeedback.className = 'text-lg font-semibold h-6 text-red-400';
+            // Stop test
+            stroopActive = false;
+            stroopStartBtn.classList.remove('hidden');
+            stroopStartBtn.textContent = 'Try Again';
+            stroopControls.classList.add('pointer-events-none', 'opacity-50');
+            stroopWordEl.textContent = 'READY';
+            stroopWordEl.style.color = '#fff';
+        }
+    }
+
+
+    // ==========================================
+    // GAME 3: INTERNAL CLOCK LOGIC
+    // ==========================================
+    let clockState = 'idle'; // idle, running
+    let clockStartTime = 0;
+    let clockInterval;
+    
+    let clockHistory = [];
+    let clockLabels = [];
+
+    const clockBtn = document.getElementById('clock-btn');
+    const clockFeedback = document.getElementById('clock-feedback');
+    const clockDisplay = document.getElementById('clock-display');
+
+    const ctxClock = document.getElementById('clockChart').getContext('2d');
+    const clockChart = new Chart(ctxClock, {
+        type: 'line',
+        data: {
+            labels: clockLabels,
+            datasets: [
+                {
+                    label: 'Target (5000ms)',
+                    data: [], // Will be filled dynamically to draw flat line
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    fill: false
+                },
+                {
+                    label: 'Your Estimate (ms)',
+                    data: clockHistory,
+                    borderColor: '#f97316',
+                    backgroundColor: 'rgba(249, 115, 22, 0.2)',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#fb923c',
+                    fill: false,
+                    tension: 0.2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { min: 2000, max: 8000 } }
+        }
+    });
+
+    function handleClockAction() {
+        if (clockState === 'idle') {
+            clockState = 'running';
+            clockStartTime = performance.now();
+            clockBtn.textContent = 'STOP TIMER';
+            clockBtn.className = 'w-64 bg-red-600 hover:bg-red-500 text-white font-bold py-5 rounded-full shadow-[0_0_20px_rgba(220,38,38,0.4)] transition-all text-xl active:scale-95';
+            clockFeedback.textContent = 'Counting...';
+            clockFeedback.className = 'text-xl font-semibold h-8 mb-4 text-slate-400';
+            clockDisplay.classList.add('hidden');
+        } else {
+            const endTime = performance.now();
+            const duration = Math.round(endTime - clockStartTime);
+            clockState = 'idle';
+            
+            clockBtn.textContent = 'START TIMER';
+            clockBtn.className = 'w-64 bg-orange-600 hover:bg-orange-500 text-white font-bold py-5 rounded-full shadow-[0_0_20px_rgba(234,88,12,0.4)] transition-all text-xl active:scale-95';
+            
+            clockDisplay.textContent = (duration / 1000).toFixed(3) + 's';
+            clockDisplay.classList.remove('hidden');
+
+            const diff = duration - 5000;
+            if (Math.abs(diff) < 200) {
+                clockFeedback.textContent = `Perfect timing! (${diff > 0 ? '+' : ''}${diff}ms)`;
+                clockFeedback.className = 'text-xl font-semibold h-8 mb-4 text-green-400';
+            } else if (diff < 0) {
+                clockFeedback.textContent = `Too fast by ${Math.abs(diff)}ms`;
+                clockFeedback.className = 'text-xl font-semibold h-8 mb-4 text-blue-400';
+            } else {
+                clockFeedback.textContent = `Too slow by ${diff}ms`;
+                clockFeedback.className = 'text-xl font-semibold h-8 mb-4 text-red-400';
+            }
+
+            // Update chart
+            clockHistory.push(duration);
+            clockLabels.push(`T${clockHistory.length}`);
+            
+            // Rebuild target line array to match length
+            const targetLine = Array(clockHistory.length).fill(5000);
+            clockChart.data.datasets[0].data = targetLine;
+            clockChart.update();
+        }
+    }
+
+
+    // ==========================================
+    // GAME 4: SPATIAL MEMORY LOGIC
+    // ==========================================
+    let spatialSequence = [];
+    let userSequence = [];
+    let spatialLevel = 1;
+    let spatialPlaying = false;
+    let acceptSpatialInput = false;
+
+    let spatialHistory = [];
+    let spatialLabels = [];
+
+    const spatialGrid = document.getElementById('spatial-grid');
+    const spatialBtn = document.getElementById('spatial-btn');
+    const spatialLevelText = document.getElementById('spatial-level');
+    const spatialStatus = document.getElementById('spatial-status');
+
+    const ctxSpatial = document.getElementById('spatialChart').getContext('2d');
+    const spatialChart = new Chart(ctxSpatial, {
+        type: 'line',
+        data: {
+            labels: spatialLabels,
+            datasets: [{
+                label: 'Max Sequence Length',
+                data: spatialHistory,
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                borderWidth: 2,
+                pointBackgroundColor: '#34d399',
+                fill: true,
+                stepped: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, suggestedMax: 10, ticks: { stepSize: 1 } } }
+        }
+    });
+
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+    async function startSpatialGame() {
+        if(spatialPlaying) return;
+        spatialPlaying = true;
+        spatialLevel = 3; // Start with sequence of 3
+        spatialSequence = [];
+        spatialBtn.classList.add('hidden');
+        
+        generateSequence();
+        await playSequence();
+    }
+
+    function generateSequence() {
+        spatialSequence = [];
+        for (let i = 0; i < spatialLevel; i++) {
+            spatialSequence.push(Math.floor(Math.random() * 9));
+        }
+    }
+
+    async function playSequence() {
+        acceptSpatialInput = false;
+        userSequence = [];
+        spatialGrid.classList.add('pointer-events-none');
+        spatialLevelText.textContent = spatialLevel;
+        spatialStatus.textContent = 'Memorize...';
+        spatialStatus.className = 'text-blue-400';
+
+        await sleep(800);
+
+        for (let i = 0; i < spatialSequence.length; i++) {
+            const tileIdx = spatialSequence[i];
+            const tile = document.querySelector(`.memory-tile[data-index="${tileIdx}"]`);
+            
+            tile.classList.add('active');
+            await sleep(400); // flash duration
+            tile.classList.remove('active');
+            await sleep(200); // gap between flashes
+        }
+
+        spatialStatus.textContent = 'Your turn!';
+        spatialStatus.className = 'text-emerald-400 font-bold';
+        spatialGrid.classList.remove('pointer-events-none');
+        acceptSpatialInput = true;
+    }
+
+    function handleSpatialClick(index) {
+        if (!acceptSpatialInput) return;
+
+        // Visual feedback for click
+        const tile = document.querySelector(`.memory-tile[data-index="${index}"]`);
+        tile.classList.add('active');
+        setTimeout(() => tile.classList.remove('active'), 150);
+
+        userSequence.push(index);
+        
+        const currentIndex = userSequence.length - 1;
+        
+        // Check if wrong
+        if (userSequence[currentIndex] !== spatialSequence[currentIndex]) {
+            gameOverSpatial();
+            return;
+        }
+
+        // Check if level complete
+        if (userSequence.length === spatialSequence.length) {
+            levelUpSpatial();
+        }
+    }
+
+    async function levelUpSpatial() {
+        acceptSpatialInput = false;
+        spatialGrid.classList.add('pointer-events-none');
+        spatialStatus.textContent = 'Correct!';
+        spatialStatus.className = 'text-green-400 font-bold';
+        
+        spatialLevel++;
+        await sleep(1000);
+        
+        generateSequence();
+        playSequence();
+    }
+
+    function gameOverSpatial() {
+        acceptSpatialInput = false;
+        spatialGrid.classList.add('pointer-events-none');
+        spatialStatus.textContent = 'Pattern Broken!';
+        spatialStatus.className = 'text-red-500 font-bold';
+        
+        // Save score (level reached - 1)
+        const score = spatialLevel;
+        spatialHistory.push(score);
+        spatialLabels.push(`A${spatialHistory.length}`);
+        spatialChart.update();
+
+        setTimeout(() => {
+            spatialBtn.classList.remove('hidden');
+            spatialBtn.textContent = 'Try Again';
+            spatialPlaying = false;
+            spatialStatus.textContent = `Max sequence: ${score}`;
+            spatialStatus.className = 'text-slate-400';
+        }, 1500);
+    }
+</script>
+</body>
+</html>
